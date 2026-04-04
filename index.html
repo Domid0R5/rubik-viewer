@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Kostka Rubika – kolorowanie 2D + solver + podgląd 3D</title>
+  <title>Kostka Rubika – standardowa / niestandardowa</title>
   <style>
     body {
       background:#111;
@@ -84,32 +84,33 @@
   </style>
 </head>
 <body>
-  <h2>Ustaw swoją kostkę, policz algorytm i zobacz go w 3D</h2>
+  <h2>Wybierz typ kostki i pokoloruj siatkę</h2>
 
-  <!-- 2D siatka -->
+  <select id="mode">
+    <option value="standard">Kostka standardowa</option>
+    <option value="custom">Moja kostka (niestandardowa)</option>
+  </select>
+
   <div id="cube2d"></div>
 
-  <!-- paleta kolorów -->
   <div id="palette">
     <div class="color-btn active" data-color="#ffffff" style="background:white;"></div>
-    <div class="color-btn" data-color="#ff0000" style="background:red;"></div>
-    <div class="color-btn" data-color="#00ff00" style="background:lime;"></div>
     <div class="color-btn" data-color="#ffff00" style="background:yellow;"></div>
+    <div class="color-btn" data-color="#ff0000" style="background:red;"></div>
     <div class="color-btn" data-color="#ff8000" style="background:orange;"></div>
+    <div class="color-btn" data-color="#00ff00" style="background:lime;"></div>
     <div class="color-btn" data-color="#0000ff" style="background:blue;"></div>
   </div>
 
-  <button id="solveBtn">Policz rozwiązanie</button>
+  <button id="solveBtn">Solve</button>
 
   <div id="error"></div>
   <div id="solution"></div>
   <div id="link3d"></div>
 
-  <!-- solver Kociemba – globalna funkcja kociemba.solve -->
   <script src="https://cdn.jsdelivr.net/gh/cubing/solvers/kociemba.js"></script>
 
   <script>
-    // ---------- 2D siatka ----------
     const cubeEl = document.getElementById("cube2d");
     const gridW = 12, gridH = 9;
     const cells = [];
@@ -124,10 +125,6 @@
       }
     }
 
-    // układ siatki:
-    //       U
-    //   L   F   R   B
-    //       D
     addFace("U", 3, 0);
     addFace("L", 0, 3);
     addFace("F", 3, 3);
@@ -157,7 +154,6 @@
       }
     }
 
-    // ---------- paleta ----------
     let selectedColor = "#ffffff";
     document.querySelectorAll(".color-btn").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -192,38 +188,36 @@
       return rgb(cells[idx].style.background);
     }
 
-    // automatyczne mapowanie kolorów środków → U,R,F,D,L,B
-    function autoMapCenters() {
-      const centers = {
-        U: getColor(facePositions.U[4]),
-        R: getColor(facePositions.R[4]),
-        F: getColor(facePositions.F[4]),
-        D: getColor(facePositions.D[4]),
-        L: getColor(facePositions.L[4]),
-        B: getColor(facePositions.B[4]),
-      };
-      const unique = new Set(Object.values(centers));
-      if (unique.size !== 6) return null;
-      const map = {};
-      for (const f of ["U","R","F","D","L","B"]) {
-        map[centers[f]] = f;
-      }
-      return map;
-    }
+    const standardMap = {
+      "#ffffff": "U",
+      "#ffff00": "D",
+      "#00ff00": "F",
+      "#0000ff": "B",
+      "#ff0000": "R",
+      "#ff8000": "L"
+    };
+
+    const customMap = {
+      "#ff8000": "U",
+      "#ff0000": "D",
+      "#ffffff": "F",
+      "#ffff00": "B",
+      "#0000ff": "R",
+      "#00ff00": "L"
+    };
 
     function getFacelets() {
-      const map = autoMapCenters();
-      if (!map) return { error: "Środkowe pola 6 ścian muszą mieć 6 różnych kolorów." };
+      const mode = document.getElementById("mode").value;
+      const map = mode === "standard" ? standardMap : customMap;
 
       const counts = { U:0,R:0,F:0,D:0,L:0,B:0 };
       const result = [];
 
       for (const face of ["U","R","F","D","L","B"]) {
         for (const pos of facePositions[face]) {
-          const idx = pos.gy * gridW + pos.gx;
-          const col = rgb(cells[idx].style.background);
+          const col = getColor(pos);
           const key = map[col];
-          if (!key) return { error: "Użyj tylko kolorów z palety i pokoloruj wszystkie pola." };
+          if (!key) return { error: "Użyj tylko kolorów z palety." };
           counts[key]++;
           result.push(key);
         }
@@ -250,17 +244,15 @@
       }
 
       try {
-        const sol = kociemba.solve(facelets); // globalna funkcja z <script src=...>
+        const sol = kociemba.solve(facelets);
         setSolution("Ruchy do ułożenia:\n" + sol);
 
-        // link do alg.cubing.net z Twoim algorytmem
         const encodedAlg = encodeURIComponent(sol);
         const url = "https://alg.cubing.net/?alg=" + encodedAlg;
         setLink3D(
           'Podgląd 3D: <a href="' + url + '" target="_blank" rel="noopener">otwórz w alg.cubing.net</a>'
         );
       } catch (e) {
-        console.error(e);
         setError("Układ niemożliwy – sprawdź kolory.");
       }
     });
