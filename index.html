@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Kostka Rubika – kolorowanie 2D + solver</title>
+  <title>Kostka Rubika – kolorowanie 2D + solver + podgląd 3D</title>
   <style>
     body {
       background:#111;
@@ -73,10 +73,18 @@
       font-family:monospace;
       white-space:pre-wrap;
     }
+    #link3d {
+      margin-top:10px;
+      font-size:13px;
+      min-height:18px;
+    }
+    a {
+      color:#6cf;
+    }
   </style>
 </head>
 <body>
-  <h2>Ustaw swoją kostkę, a potem zobacz algorytm ułożenia</h2>
+  <h2>Ustaw swoją kostkę, policz algorytm i zobacz go w 3D</h2>
 
   <!-- 2D siatka -->
   <div id="cube2d"></div>
@@ -95,8 +103,9 @@
 
   <div id="error"></div>
   <div id="solution"></div>
+  <div id="link3d"></div>
 
-  <!-- solver Kociemba – wersja bez modułów -->
+  <!-- solver Kociemba – globalna funkcja kociemba.solve -->
   <script src="https://cdn.jsdelivr.net/gh/cubing/solvers/kociemba.js"></script>
 
   <script>
@@ -166,9 +175,11 @@
 
     const errorBox = document.getElementById("error");
     const solutionBox = document.getElementById("solution");
+    const link3dBox = document.getElementById("link3d");
 
     function setError(msg)   { errorBox.textContent = msg || ""; }
     function setSolution(s)  { solutionBox.textContent = s || ""; }
+    function setLink3D(html) { link3dBox.innerHTML = html || ""; }
 
     function rgb(c) {
       const ctx = document.createElement("canvas").getContext("2d");
@@ -230,6 +241,7 @@
     document.getElementById("solveBtn").addEventListener("click", () => {
       setError("");
       setSolution("");
+      setLink3D("");
 
       const { error, facelets } = getFacelets();
       if (error) {
@@ -240,6 +252,13 @@
       try {
         const sol = kociemba.solve(facelets); // globalna funkcja z <script src=...>
         setSolution("Ruchy do ułożenia:\n" + sol);
+
+        // link do alg.cubing.net z Twoim algorytmem
+        const encodedAlg = encodeURIComponent(sol);
+        const url = "https://alg.cubing.net/?alg=" + encodedAlg;
+        setLink3D(
+          'Podgląd 3D: <a href="' + url + '" target="_blank" rel="noopener">otwórz w alg.cubing.net</a>'
+        );
       } catch (e) {
         console.error(e);
         setError("Układ niemożliwy – sprawdź kolory.");
@@ -248,4 +267,3 @@
   </script>
 </body>
 </html>
-
