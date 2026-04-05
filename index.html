@@ -15,11 +15,11 @@
 
   h2 { margin-bottom:10px; }
 
-  /* Ładna siatka */
-  #cube2d {
+  /* Siatka kostki 3×3 × 6 */
+  #cube {
     display:grid;
-    grid-template-columns:repeat(12, 40px);
-    grid-template-rows:repeat(9, 40px);
+    grid-template-columns: repeat(12, 50px);
+    grid-template-rows: repeat(9, 50px);
     gap:4px;
     justify-content:center;
     margin:20px auto;
@@ -29,8 +29,8 @@
   }
 
   .cell {
-    width:40px;
-    height:40px;
+    width:50px;
+    height:50px;
     background:#333;
     border-radius:6px;
     border:2px solid #555;
@@ -102,7 +102,7 @@
   <option value="custom">Moja kostka (niestandardowa)</option>
 </select>
 
-<div id="cube2d"></div>
+<div id="cube"></div>
 
 <!-- Paleta kolorów -->
 <div id="palette">
@@ -120,33 +120,34 @@
 <div id="solution"></div>
 <div id="link3d"></div>
 
-<!-- Solver Kociemba -->
 <script src="https://cdn.jsdelivr.net/gh/cubing/solvers/kociemba.js"></script>
 
 <script>
-/* --- GENEROWANIE SIATKI --- */
-const gridW=12, gridH=9;
-const cube=document.getElementById("cube2d");
+/* --- GENEROWANIE PRAWDZIWEJ SIATKI 3×3 × 6 --- */
+
+const cube=document.getElementById("cube");
 const cells=[];
 const faces={U:[],R:[],F:[],D:[],L:[],B:[]};
 
-function addFace(f,x,y){
-  for(let dy=0;dy<3;dy++){
-    for(let dx=0;dx<3;dx++){
-      faces[f].push({gx:x+dx,gy:y+dy});
+function addFace(face, startX, startY) {
+  for (let y=0; y<3; y++) {
+    for (let x=0; x<3; x++) {
+      faces[face].push({gx:startX+x, gy:startY+y});
     }
   }
 }
 
-addFace("U",3,0);
-addFace("L",0,3);
-addFace("F",3,3);
-addFace("R",6,3);
-addFace("B",9,3);
-addFace("D",3,6);
+/* Prawdziwy układ siatki */
+addFace("U", 3, 0);
+addFace("L", 0, 3);
+addFace("F", 3, 3);
+addFace("R", 6, 3);
+addFace("B", 9, 3);
+addFace("D", 3, 6);
 
-for(let gy=0;gy<gridH;gy++){
-  for(let gx=0;gx<gridW;gx++){
+/* Tworzenie 12×9 siatki, ale tylko 6×(3×3) jest aktywne */
+for (let gy=0; gy<9; gy++) {
+  for (let gx=0; gx<12; gx++) {
     const d=document.createElement("div");
     d.className="cell";
     d.dataset.gx=gx;
@@ -156,9 +157,10 @@ for(let gy=0;gy<gridH;gy++){
   }
 }
 
-for(const f of ["U","R","F","D","L","B"]){
-  for(const pos of faces[f]){
-    const idx=pos.gy*gridW+pos.gx;
+/* Aktywne pola = naklejki */
+for (const f of ["U","R","F","D","L","B"]) {
+  for (const pos of faces[f]) {
+    const idx=pos.gy*12 + pos.gx;
     cells[idx].classList.add("face");
     cells[idx].dataset.face=f;
   }
@@ -204,7 +206,7 @@ function rgb(c){
 }
 
 function getColor(pos){
-  const idx=pos.gy*gridW+pos.gx;
+  const idx=pos.gy*12+pos.gx;
   return rgb(cells[idx].style.background);
 }
 
@@ -232,7 +234,7 @@ function getFacelets(){
   return {facelets:out.join("")};
 }
 
-/* --- SOLVER --- */
+/* --- SOLVER + PODGLĄD 3D --- */
 document.getElementById("solveBtn").onclick=()=>{
   document.getElementById("error").textContent="";
   document.getElementById("solution").textContent="";
