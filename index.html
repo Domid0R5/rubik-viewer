@@ -1,261 +1,170 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <title>Kostka Rubika – standardowa / niestandardowa</title>
-  <style>
-    body {
-      background:#111;
-      color:#eee;
-      font-family:Arial,sans-serif;
-      text-align:center;
-      margin:0;
-      padding:20px 10px 40px;
-    }
-    #cube2d {
-      display:grid;
-      grid-template-columns:repeat(12,26px);
-      grid-template-rows:repeat(9,26px);
-      gap:2px;
-      justify-content:center;
-      margin:10px auto;
-    }
-    .cell {
-      width:26px;
-      height:26px;
-      border-radius:3px;
-      border:1px solid #333;
-      background:transparent;
-      cursor:default;
-    }
-    .face-cell {
-      background:#000;
-      cursor:pointer;
-    }
-    #palette {
-      display:flex;
-      justify-content:center;
-      gap:8px;
-      margin-top:10px;
-    }
-    .color-btn {
-      width:28px;
-      height:28px;
-      border-radius:4px;
-      border:2px solid #444;
-      cursor:pointer;
-    }
-    .color-btn.active {
-      border-color:#fff;
-    }
-    button {
-      padding:8px 16px;
-      border-radius:4px;
-      border:1px solid #444;
-      background:#222;
-      color:#eee;
-      cursor:pointer;
-      margin-top:10px;
-    }
-    button:hover {
-      background:#333;
-    }
-    #error {
-      margin-top:8px;
-      color:#ff6666;
-      font-size:13px;
-      min-height:16px;
-    }
-    #solution {
-      margin-top:8px;
-      font-size:13px;
-      min-height:16px;
-      font-family:monospace;
-      white-space:pre-wrap;
-    }
-    #link3d {
-      margin-top:10px;
-      font-size:13px;
-      min-height:18px;
-    }
-    a {
-      color:#6cf;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Rubik Solver – Standard / Niestandard</title>
+<style>
+  body { background:#111; color:#eee; font-family:Arial; text-align:center; padding:20px; }
+  #cube2d { display:grid; grid-template-columns:repeat(12,26px); grid-template-rows:repeat(9,26px); gap:2px; justify-content:center; margin:20px auto; }
+  .cell { width:26px; height:26px; background:#000; border:1px solid #333; }
+  .face { cursor:pointer; }
+  #palette { display:flex; justify-content:center; gap:8px; margin:10px; }
+  .color { width:28px; height:28px; border:2px solid #444; cursor:pointer; }
+  .active { border-color:#fff; }
+  select, button { margin-top:10px; padding:8px 16px; background:#222; color:#eee; border:1px solid #444; }
+</style>
 </head>
 <body>
-  <h2>Wybierz typ kostki i pokoloruj siatkę</h2>
 
-  <select id="mode">
-    <option value="standard">Kostka standardowa</option>
-    <option value="custom">Moja kostka (niestandardowa)</option>
-  </select>
+<h2>Wybierz typ kostki</h2>
 
-  <div id="cube2d"></div>
+<select id="mode">
+  <option value="standard">Kostka standardowa</option>
+  <option value="custom">Moja kostka (niestandardowa)</option>
+</select>
 
-  <div id="palette">
-    <div class="color-btn active" data-color="#ffffff" style="background:white;"></div>
-    <div class="color-btn" data-color="#ffff00" style="background:yellow;"></div>
-    <div class="color-btn" data-color="#ff0000" style="background:red;"></div>
-    <div class="color-btn" data-color="#ff8000" style="background:orange;"></div>
-    <div class="color-btn" data-color="#00ff00" style="background:lime;"></div>
-    <div class="color-btn" data-color="#0000ff" style="background:blue;"></div>
-  </div>
+<div id="cube2d"></div>
 
-  <button id="solveBtn">Solve</button>
+<div id="palette">
+  <div class="color active" data-color="#ffffff" style="background:white;"></div>
+  <div class="color" data-color="#ffff00" style="background:yellow;"></div>
+  <div class="color" data-color="#ff0000" style="background:red;"></div>
+  <div class="color" data-color="#ff8000" style="background:orange;"></div>
+  <div class="color" data-color="#00ff00" style="background:lime;"></div>
+  <div class="color" data-color="#0000ff" style="background:blue;"></div>
+</div>
 
-  <div id="error"></div>
-  <div id="solution"></div>
-  <div id="link3d"></div>
+<button id="solveBtn">Solve</button>
 
-  <script src="https://cdn.jsdelivr.net/gh/cubing/solvers/kociemba.js"></script>
+<div id="error"></div>
+<div id="solution"></div>
 
-  <script>
-    const cubeEl = document.getElementById("cube2d");
-    const gridW = 12, gridH = 9;
-    const cells = [];
+<script src="https://cdn.jsdelivr.net/gh/cubing/solvers/kociemba.js"></script>
 
-    const facePositions = { U: [], R: [], F: [], D: [], L: [], B: [] };
+<script>
+const gridW=12, gridH=9;
+const cube=document.getElementById("cube2d");
+const cells=[];
+const faces={U:[],R:[],F:[],D:[],L:[],B:[]};
 
-    function addFace(face, x, y) {
-      for (let dy = 0; dy < 3; dy++) {
-        for (let dx = 0; dx < 3; dx++) {
-          facePositions[face].push({ gx: x + dx, gy: y + dy });
-        }
-      }
+function addFace(f,x,y){
+  for(let dy=0;dy<3;dy++){
+    for(let dx=0;dx<3;dx++){
+      faces[f].push({gx:x+dx,gy:y+dy});
     }
+  }
+}
 
-    addFace("U", 3, 0);
-    addFace("L", 0, 3);
-    addFace("F", 3, 3);
-    addFace("R", 6, 3);
-    addFace("B", 9, 3);
-    addFace("D", 3, 6);
+addFace("U",3,0);
+addFace("L",0,3);
+addFace("F",3,3);
+addFace("R",6,3);
+addFace("B",9,3);
+addFace("D",3,6);
 
-    for (let gy = 0; gy < gridH; gy++) {
-      for (let gx = 0; gx < gridW; gx++) {
-        const div = document.createElement("div");
-        div.className = "cell";
-        div.dataset.gx = gx;
-        div.dataset.gy = gy;
-        cubeEl.appendChild(div);
-        cells.push(div);
-      }
+for(let gy=0;gy<gridH;gy++){
+  for(let gx=0;gx<gridW;gx++){
+    const d=document.createElement("div");
+    d.className="cell";
+    d.dataset.gx=gx;
+    d.dataset.gy=gy;
+    cube.appendChild(d);
+    cells.push(d);
+  }
+}
+
+for(const f of ["U","R","F","D","L","B"]){
+  for(const pos of faces[f]){
+    const idx=pos.gy*gridW+pos.gx;
+    cells[idx].classList.add("face");
+    cells[idx].dataset.face=f;
+  }
+}
+
+let selected="#ffffff";
+document.querySelectorAll(".color").forEach(btn=>{
+  btn.onclick=()=>{
+    selected=btn.dataset.color;
+    document.querySelectorAll(".color").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+  };
+});
+
+document.querySelectorAll(".face").forEach(c=>{
+  c.onclick=()=>c.style.background=selected;
+});
+
+const standard={
+  "#ffffff":"U",
+  "#ffff00":"D",
+  "#00ff00":"F",
+  "#0000ff":"B",
+  "#ff0000":"R",
+  "#ff8000":"L"
+};
+
+const custom={
+  "#ff8000":"U",
+  "#ff0000":"D",
+  "#ffffff":"F",
+  "#ffff00":"B",
+  "#0000ff":"R",
+  "#00ff00":"L"
+};
+
+function rgb(c){
+  const ctx=document.createElement("canvas").getContext("2d");
+  ctx.fillStyle=c||"#000";
+  return ctx.fillStyle;
+}
+
+function getColor(pos){
+  const idx=pos.gy*gridW+pos.gx;
+  return rgb(cells[idx].style.background);
+}
+
+function getFacelets(){
+  const mode=document.getElementById("mode").value;
+  const map=mode==="standard"?standard:custom;
+
+  const count={U:0,R:0,F:0,D:0,L:0,B:0};
+  const out=[];
+
+  for(const f of ["U","R","F","D","L","B"]){
+    for(const pos of faces[f]){
+      const col=getColor(pos);
+      const key=map[col];
+      if(!key) return {error:"Użyj tylko kolorów z palety"};
+      count[key]++;
+      out.push(key);
     }
+  }
 
-    const faceCells = [];
-    for (const face of ["U","R","F","D","L","B"]) {
-      for (const pos of facePositions[face]) {
-        const idx = pos.gy * gridW + pos.gx;
-        const cell = cells[idx];
-        cell.classList.add("face-cell");
-        cell.dataset.face = face;
-        faceCells.push(cell);
-      }
-    }
+  for(const k in count){
+    if(count[k]!==9) return {error:`Kolor ${k} ma ${count[k]} pól (powinno być 9)`};
+  }
 
-    let selectedColor = "#ffffff";
-    document.querySelectorAll(".color-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        selectedColor = btn.dataset.color;
-        document.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-      });
-    });
+  return {facelets:out.join("")};
+}
 
-    faceCells.forEach(cell => {
-      cell.addEventListener("click", () => {
-        cell.style.background = selectedColor;
-      });
-    });
+document.getElementById("solveBtn").onclick=()=>{
+  document.getElementById("error").textContent="";
+  document.getElementById("solution").textContent="";
 
-    const errorBox = document.getElementById("error");
-    const solutionBox = document.getElementById("solution");
-    const link3dBox = document.getElementById("link3d");
+  const {error,facelets}=getFacelets();
+  if(error){
+    document.getElementById("error").textContent=error;
+    return;
+  }
 
-    function setError(msg)   { errorBox.textContent = msg || ""; }
-    function setSolution(s)  { solutionBox.textContent = s || ""; }
-    function setLink3D(html) { link3dBox.innerHTML = html || ""; }
+  try{
+    const sol=kociemba.solve(facelets);
+    document.getElementById("solution").textContent=sol;
+  }catch(e){
+    document.getElementById("error").textContent="Układ niemożliwy";
+  }
+};
+</script>
 
-    function rgb(c) {
-      const ctx = document.createElement("canvas").getContext("2d");
-      ctx.fillStyle = c || "#000000";
-      return ctx.fillStyle;
-    }
-
-    function getColor(pos) {
-      const idx = pos.gy * gridW + pos.gx;
-      return rgb(cells[idx].style.background);
-    }
-
-    const standardMap = {
-      "#ffffff": "U",
-      "#ffff00": "D",
-      "#00ff00": "F",
-      "#0000ff": "B",
-      "#ff0000": "R",
-      "#ff8000": "L"
-    };
-
-    const customMap = {
-      "#ff8000": "U",
-      "#ff0000": "D",
-      "#ffffff": "F",
-      "#ffff00": "B",
-      "#0000ff": "R",
-      "#00ff00": "L"
-    };
-
-    function getFacelets() {
-      const mode = document.getElementById("mode").value;
-      const map = mode === "standard" ? standardMap : customMap;
-
-      const counts = { U:0,R:0,F:0,D:0,L:0,B:0 };
-      const result = [];
-
-      for (const face of ["U","R","F","D","L","B"]) {
-        for (const pos of facePositions[face]) {
-          const col = getColor(pos);
-          const key = map[col];
-          if (!key) return { error: "Użyj tylko kolorów z palety." };
-          counts[key]++;
-          result.push(key);
-        }
-      }
-
-      for (const f of ["U","R","F","D","L","B"]) {
-        if (counts[f] !== 9) {
-          return { error: `Kolor ${f} ma ${counts[f]} pól (powinno być 9).` };
-        }
-      }
-
-      return { facelets: result.join("") };
-    }
-
-    document.getElementById("solveBtn").addEventListener("click", () => {
-      setError("");
-      setSolution("");
-      setLink3D("");
-
-      const { error, facelets } = getFacelets();
-      if (error) {
-        setError(error);
-        return;
-      }
-
-      try {
-        const sol = kociemba.solve(facelets);
-        setSolution("Ruchy do ułożenia:\n" + sol);
-
-        const encodedAlg = encodeURIComponent(sol);
-        const url = "https://alg.cubing.net/?alg=" + encodedAlg;
-        setLink3D(
-          'Podgląd 3D: <a href="' + url + '" target="_blank" rel="noopener">otwórz w alg.cubing.net</a>'
-        );
-      } catch (e) {
-        setError("Układ niemożliwy – sprawdź kolory.");
-      }
-    });
-  </script>
 </body>
 </html>
