@@ -3,17 +3,96 @@
 <head>
 <meta charset="UTF-8">
 <title>Rubik Solver – Standard / Niestandard</title>
+
 <style>
-  body { background:#111; color:#eee; font-family:Arial; text-align:center; padding:20px; }
-  #cube2d { display:grid; grid-template-columns:repeat(12,26px); grid-template-rows:repeat(9,26px); gap:2px; justify-content:center; margin:20px auto; }
-  .cell { width:26px; height:26px; background:#000; border:1px solid #333; }
-  .face { cursor:pointer; }
-  #palette { display:flex; justify-content:center; gap:8px; margin:10px; }
-  .color { width:28px; height:28px; border:2px solid #444; cursor:pointer; }
-  .active { border-color:#fff; }
-  select, button { margin-top:10px; padding:8px 16px; background:#222; color:#eee; border:1px solid #444; }
+  body {
+    background:#111;
+    color:#eee;
+    font-family:Arial;
+    text-align:center;
+    padding:20px;
+  }
+
+  h2 { margin-bottom:10px; }
+
+  /* Ładna siatka */
+  #cube2d {
+    display:grid;
+    grid-template-columns:repeat(12, 40px);
+    grid-template-rows:repeat(9, 40px);
+    gap:4px;
+    justify-content:center;
+    margin:20px auto;
+    background:#222;
+    padding:12px;
+    border-radius:12px;
+  }
+
+  .cell {
+    width:40px;
+    height:40px;
+    background:#333;
+    border-radius:6px;
+    border:2px solid #555;
+    transition:0.15s;
+  }
+
+  .face {
+    cursor:pointer;
+    background:#111;
+    border:2px solid #777;
+  }
+
+  .face:hover {
+    border-color:#fff;
+    transform:scale(1.12);
+  }
+
+  .face:active {
+    transform:scale(0.95);
+  }
+
+  /* Paleta */
+  #palette {
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    margin:10px;
+  }
+
+  .color {
+    width:32px;
+    height:32px;
+    border:3px solid #444;
+    cursor:pointer;
+    border-radius:6px;
+  }
+
+  .active {
+    border-color:#fff;
+  }
+
+  select, button {
+    margin-top:10px;
+    padding:10px 18px;
+    background:#222;
+    color:#eee;
+    border:1px solid #444;
+    border-radius:6px;
+    cursor:pointer;
+  }
+
+  button:hover {
+    background:#333;
+  }
+
+  #error { color:#ff6666; margin-top:10px; }
+  #solution { margin-top:10px; white-space:pre-wrap; font-family:monospace; }
+  #link3d { margin-top:10px; }
+  a { color:#6cf; }
 </style>
 </head>
+
 <body>
 
 <h2>Wybierz typ kostki</h2>
@@ -25,6 +104,7 @@
 
 <div id="cube2d"></div>
 
+<!-- Paleta kolorów -->
 <div id="palette">
   <div class="color active" data-color="#ffffff" style="background:white;"></div>
   <div class="color" data-color="#ffff00" style="background:yellow;"></div>
@@ -38,10 +118,13 @@
 
 <div id="error"></div>
 <div id="solution"></div>
+<div id="link3d"></div>
 
+<!-- Solver Kociemba -->
 <script src="https://cdn.jsdelivr.net/gh/cubing/solvers/kociemba.js"></script>
 
 <script>
+/* --- GENEROWANIE SIATKI --- */
 const gridW=12, gridH=9;
 const cube=document.getElementById("cube2d");
 const cells=[];
@@ -81,6 +164,7 @@ for(const f of ["U","R","F","D","L","B"]){
   }
 }
 
+/* --- PALETA --- */
 let selected="#ffffff";
 document.querySelectorAll(".color").forEach(btn=>{
   btn.onclick=()=>{
@@ -94,6 +178,7 @@ document.querySelectorAll(".face").forEach(c=>{
   c.onclick=()=>c.style.background=selected;
 });
 
+/* --- MAPOWANIA --- */
 const standard={
   "#ffffff":"U",
   "#ffff00":"D",
@@ -147,9 +232,11 @@ function getFacelets(){
   return {facelets:out.join("")};
 }
 
+/* --- SOLVER --- */
 document.getElementById("solveBtn").onclick=()=>{
   document.getElementById("error").textContent="";
   document.getElementById("solution").textContent="";
+  document.getElementById("link3d").textContent="";
 
   const {error,facelets}=getFacelets();
   if(error){
@@ -160,6 +247,10 @@ document.getElementById("solveBtn").onclick=()=>{
   try{
     const sol=kociemba.solve(facelets);
     document.getElementById("solution").textContent=sol;
+
+    const url="https://alg.cubing.net/?alg="+encodeURIComponent(sol);
+    document.getElementById("link3d").innerHTML=
+      `Podgląd 3D: <a href="${url}" target="_blank">otwórz w alg.cubing.net</a>`;
   }catch(e){
     document.getElementById("error").textContent="Układ niemożliwy";
   }
